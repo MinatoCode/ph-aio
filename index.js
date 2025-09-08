@@ -83,7 +83,7 @@ app.get('/api/download', async (req, res) => {
     }
 
     console.log(`[Download] URL: ${url}`);
-    const downloadUrl = `https://min-cornhub-dl.onrender.com?url=${encodeURIComponent(url)}`;
+    const downloadUrl = `https://min-cornhub-dl.onrender.com/api/download?pUrl=${encodeURIComponent(url)}`;
     const response = await fetch(downloadUrl);
     if (!response.ok) {
       throw new Error(`Download API error: ${response.status} ${response.statusText}`);
