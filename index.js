@@ -75,7 +75,7 @@ app.get('/api/download', async (req, res) => {
       return res.status(400).json({ error: 'URL parameter "url" is required', api_creator: 'Minatocode' });
     }
 
-    const downloadUrl = `https://min-cornhub-dl.onrender.com?url=${encodeURIComponent(url)}`;
+    const downloadUrl = `https://min-cornhub-dl.onrender.com/api/download?pUrl=${encodeURIComponent(url)}`;
     const response = await fetch(downloadUrl);
     if (!response.ok) {
       throw new Error(`External API error: ${response.status}`);
