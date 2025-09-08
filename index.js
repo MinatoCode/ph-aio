@@ -18,12 +18,12 @@ app.get('/', (req, res) => {
       {
         path: '/api/download?url={video_url}',
         method: 'GET',
-        description: 'Get download info for a specific video URL. Returns download_url, ext, success, title, creator and api_creator watermark.'
+        description: 'Get download info for a specific video URL. Returns download_url, ext, success, title, creator.'
       },
       {
         path: '/api/sdownload?q={query}',
         method: 'GET',
-        description: 'Combined search and download: Searches for videos, takes a random result\'s link, and fetches download info. Returns the download response with api_creator watermark.'
+        description: 'Combined search and download: Searches for videos, takes a random result\'s link, and fetches download info. Returns the download response.'
       },
       {
         path: '/api/health',
@@ -32,14 +32,13 @@ app.get('/', (req, res) => {
       }
     ],
     version: '1.0.0',
-    note: 'All endpoints handle errors and return JSON. Use responsibly and comply with Pornhub\'s TOS.',
-    api_creator: 'Minatocode'
+    note: 'All endpoints handle errors and return JSON. Use responsibly and comply with Pornhub\'s TOS.'
   });
 });
 
 // Health endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running', api_creator: 'Minatocode' });
+  res.json({ status: 'ok', message: 'Server is running' });
 });
 
 // Search endpoint: Proxy to external search API
@@ -79,7 +78,7 @@ app.get('/api/download', async (req, res) => {
   try {
     const url = req.query.url;
     if (!url) {
-      return res.status(400).json({ error: 'URL parameter "url" is required', api_creator: 'Minatocode' });
+      return res.status(400).json({ error: 'URL parameter "url" is required' });
     }
 
     console.log(`[Download] URL: ${url}`);
@@ -91,12 +90,10 @@ app.get('/api/download', async (req, res) => {
     const downloadInfo = await response.json();
     console.log(`[Download] Raw response: ${JSON.stringify(downloadInfo).slice(0, 200)}...`);
 
-    // Add watermark to download response
-    downloadInfo.api_creator = 'Minatocode';
     res.json(downloadInfo);
   } catch (error) {
     console.error('[Download] Error:', error.message);
-    res.status(500).json({ error: `Internal server error during download: ${error.message}`, api_creator: 'Minatocode' });
+    res.status(500).json({ error: `Internal server error during download: ${error.message}` });
   }
 });
 
@@ -105,7 +102,7 @@ app.get('/api/sdownload', async (req, res) => {
   try {
     const query = req.query.q;
     if (!query) {
-      return res.status(400).json({ error: 'Query parameter "q" is required', api_creator: 'Minatocode' });
+      return res.status(400).json({ error: 'Query parameter "q" is required' });
     }
 
     console.log(`[SDownload] Query: ${query}`);
@@ -121,13 +118,13 @@ app.get('/api/sdownload', async (req, res) => {
     // Handle different response formats and validate
     const resultsArray = Array.isArray(searchResults) ? searchResults : searchResults.results || [];
     if (!resultsArray.length) {
-      return res.status(404).json({ error: 'No search results found', api_creator: 'Minatocode' });
+      return res.status(404).json({ error: 'No search results found' });
     }
 
     // Validate each result has a link
     const validResults = resultsArray.filter(result => result && typeof result.link === 'string' && result.link);
     if (!validResults.length) {
-      return res.status(404).json({ error: 'No valid results with links found', api_creator: 'Minatocode' });
+      return res.status(404).json({ error: 'No valid results with links found' });
     }
 
     // Pick a random result's link
@@ -136,7 +133,7 @@ app.get('/api/sdownload', async (req, res) => {
     console.log(`[SDownload] Selected link: ${randomLink} (index: ${randomIndex})`);
 
     // Step 2: Download with random link
-    const downloadUrl = `https://min-cornhub-dl.onrender.com?url=${encodeURIComponent(randomLink)}`;
+    const downloadUrl = `https://min-cornhub-dl.onrender.com/api/downlaod?pUrl=${encodeURIComponent(randomLink)}`;
     const downloadResponse = await fetch(downloadUrl);
     if (!downloadResponse.ok) {
       throw new Error(`Download API error: ${downloadResponse.status} ${downloadResponse.statusText}`);
@@ -144,15 +141,14 @@ app.get('/api/sdownload', async (req, res) => {
     const downloadInfo = await downloadResponse.json();
     console.log(`[SDownload] Download response: ${JSON.stringify(downloadInfo).slice(0, 200)}...`);
 
-    // Add watermark and extra info to download response
-    downloadInfo.api_creator = 'Minatocode';
+    // Add extra info to download response (no watermark)
     downloadInfo.selected_index = randomIndex;
     downloadInfo.selected_title = validResults[randomIndex].title || 'Unknown title';
 
     res.json(downloadInfo);
   } catch (error) {
     console.error('[SDownload] Error:', error.message);
-    res.status(500).json({ error: `Internal server error during combined search and download: ${error.message}`, api_creator: 'Minatocode' });
+    res.status(500).json({ error: `Internal server error during combined search and download: ${error.message}` });
   }
 });
 
