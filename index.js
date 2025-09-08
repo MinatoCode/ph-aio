@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
-// Middleware to parse JSON bodies (if needed for future POST routes)
+// Middleware to parse JSON bodies
 app.use(express.json());
 
 // Root endpoint: Info about all endpoints
@@ -50,20 +50,27 @@ app.get('/api/search', async (req, res) => {
       return res.status(400).json({ error: 'Query parameter "q" is required', api_creator: 'Minatocode' });
     }
 
+    console.log(`[Search] Query: ${query}`);
     const searchUrl = `https://min-ph-search.onrender.com/api/search?q=${encodeURIComponent(query)}`;
     const response = await fetch(searchUrl);
     if (!response.ok) {
-      throw new Error(`External API error: ${response.status}`);
+      throw new Error(`Search API error: ${response.status} ${response.statusText}`);
     }
     const results = await response.json();
+    console.log(`[Search] Raw response: ${JSON.stringify(results).slice(0, 200)}...`);
+
+    // Handle different response formats
+    const searchResults = Array.isArray(results) ? results : results.results || [];
+    if (!searchResults.length) {
+      return res.status(404).json({ error: 'No search results found', api_creator: 'Minatocode' });
+    }
 
     // Add watermark to search results
-    const watermarkedResults = { ...results, api_creator: 'Minatocode' };
-
+    const watermarkedResults = { results: searchResults, api_creator: 'Minatocode' };
     res.json(watermarkedResults);
   } catch (error) {
-    console.error('Search error:', error);
-    res.status(500).json({ error: 'Internal server error during search', api_creator: 'Minatocode' });
+    console.error('[Search] Error:', error.message);
+    res.status(500).json({ error: `Internal server error during search: ${error.message}`, api_creator: 'Minatocode' });
   }
 });
 
@@ -75,20 +82,21 @@ app.get('/api/download', async (req, res) => {
       return res.status(400).json({ error: 'URL parameter "url" is required', api_creator: 'Minatocode' });
     }
 
-    const downloadUrl = `https://min-cornhub-dl.onrender.com/api/download?pUrl=${encodeURIComponent(url)}`;
+    console.log(`[Download] URL: ${url}`);
+    const downloadUrl = `https://min-cornhub-dl.onrender.com?url=${encodeURIComponent(url)}`;
     const response = await fetch(downloadUrl);
     if (!response.ok) {
-      throw new Error(`External API error: ${response.status}`);
+      throw new Error(`Download API error: ${response.status} ${response.statusText}`);
     }
     const downloadInfo = await response.json();
+    console.log(`[Download] Raw response: ${JSON.stringify(downloadInfo).slice(0, 200)}...`);
 
     // Add watermark to download response
     downloadInfo.api_creator = 'Minatocode';
-
     res.json(downloadInfo);
   } catch (error) {
-    console.error('Download error:', error);
-    res.status(500).json({ error: 'Internal server error during download', api_creator: 'Minatocode' });
+    console.error('[Download] Error:', error.message);
+    res.status(500).json({ error: `Internal server error during download: ${error.message}`, api_creator: 'Minatocode' });
   }
 });
 
@@ -100,39 +108,51 @@ app.get('/api/sdownload', async (req, res) => {
       return res.status(400).json({ error: 'Query parameter "q" is required', api_creator: 'Minatocode' });
     }
 
+    console.log(`[SDownload] Query: ${query}`);
     // Step 1: Search
     const searchUrl = `https://min-ph-search.onrender.com/api/search?q=${encodeURIComponent(query)}`;
     const searchResponse = await fetch(searchUrl);
     if (!searchResponse.ok) {
-      throw new Error(`Search API error: ${searchResponse.status}`);
+      throw new Error(`Search API error: ${searchResponse.status} ${searchResponse.statusText}`);
     }
     const searchResults = await searchResponse.json();
+    console.log(`[SDownload] Search response: ${JSON.stringify(searchResults).slice(0, 200)}...`);
 
-    if (!searchResults || searchResults.length === 0) {
+    // Handle different response formats and validate
+    const resultsArray = Array.isArray(searchResults) ? searchResults : searchResults.results || [];
+    if (!resultsArray.length) {
       return res.status(404).json({ error: 'No search results found', api_creator: 'Minatocode' });
     }
 
+    // Validate each result has a link
+    const validResults = resultsArray.filter(result => result && typeof result.link === 'string' && result.link);
+    if (!validResults.length) {
+      return res.status(404).json({ error: 'No valid results with links found', api_creator: 'Minatocode' });
+    }
+
     // Pick a random result's link
-    const randomIndex = Math.floor(Math.random() * searchResults.length);
-    const randomLink = searchResults[randomIndex].link;
+    const randomIndex = Math.floor(Math.random() * validResults.length);
+    const randomLink = validResults[randomIndex].link;
+    console.log(`[SDownload] Selected link: ${randomLink} (index: ${randomIndex})`);
 
     // Step 2: Download with random link
     const downloadUrl = `https://min-cornhub-dl.onrender.com?url=${encodeURIComponent(randomLink)}`;
     const downloadResponse = await fetch(downloadUrl);
     if (!downloadResponse.ok) {
-      throw new Error(`Download API error: ${downloadResponse.status}`);
+      throw new Error(`Download API error: ${downloadResponse.status} ${downloadResponse.statusText}`);
     }
     const downloadInfo = await downloadResponse.json();
+    console.log(`[SDownload] Download response: ${JSON.stringify(downloadInfo).slice(0, 200)}...`);
 
     // Add watermark and extra info to download response
-    downloadInfo.api_creator = 'Minatocodes';
+    downloadInfo.api_creator = 'Minatocode';
     downloadInfo.selected_index = randomIndex;
-    downloadInfo.selected_title = searchResults[randomIndex].title;
+    downloadInfo.selected_title = validResults[randomIndex].title || 'Unknown title';
 
     res.json(downloadInfo);
   } catch (error) {
-    console.error('Sdownload error:', error);
-    res.status(500).json({ error: 'Internal server error during combined search and download', api_creator: 'Minatocode' });
+    console.error('[SDownload] Error:', error.message);
+    res.status(500).json({ error: `Internal server error during combined search and download: ${error.message}`, api_creator: 'Minatocode' });
   }
 });
 
