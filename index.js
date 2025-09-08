@@ -133,7 +133,7 @@ app.get('/api/sdownload', async (req, res) => {
     console.log(`[SDownload] Selected link: ${randomLink} (index: ${randomIndex})`);
 
     // Step 2: Download with random link
-    const downloadUrl = `https://min-cornhub-dl.onrender.com/api/downlaod?pUrl=${encodeURIComponent(randomLink)}`;
+    const downloadUrl = `https://min-cornhub-dl.onrender.com/api/download?pUrl=${encodeURIComponent(randomLink)}`;
     const downloadResponse = await fetch(downloadUrl);
     if (!downloadResponse.ok) {
       throw new Error(`Download API error: ${downloadResponse.status} ${downloadResponse.statusText}`);
