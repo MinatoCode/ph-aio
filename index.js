@@ -18,7 +18,9 @@ app.get('/', (req, res) => {
 // /api/search?q=
 app.get('/api/search', async (req, res) => {
   const query = req.query.q;
-  if (!query) return res.status(400).json({ success: false, error: 'Missing query', api_creator: "MinatoCodes" });
+  if (!query) {
+    return res.status(400).json({ success: false, error: 'Missing query', api_creator: "MinatoCodes" });
+  }
 
   try {
     const results = await pornhub.search({ search: query, page: 1 });
@@ -39,10 +41,12 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// /api/download?q=
+// /api/download?q=  OR  /api/download?url=
 app.get('/api/download', async (req, res) => {
-  const videoUrl = req.query.q;
-  if (!videoUrl) return res.status(400).json({ success: false, error: 'Missing video URL or q=search item', api_creator: "MinatoCodes" });
+  const videoUrl = req.query.q || req.query.url;
+  if (!videoUrl) {
+    return res.status(400).json({ success: false, error: 'Missing video URL', api_creator: "MinatoCodes" });
+  }
 
   try {
     const response = await axios.get(`https://min-cornhub-dl.vercel.app/api/download?pUrl=${encodeURIComponent(videoUrl)}`);
@@ -63,29 +67,4 @@ app.get('/api/download', async (req, res) => {
   }
 });
 
-// /api/download?url=
-app.get('/api/download', async (req, res) => {
-  const directUrl = req.query.url;
-  if (!directUrl) return res.status(400).json({ success: false, error: 'Missing direct URL', api_creator: "MinatoCodes" });
-
-  try {
-    const response = await axios.get(`https://min-cornhub-dl.vercel.app/api/download?pUrl=${encodeURIComponent(directUrl)}`);
-    const downloadUrl = response.data?.download_url;
-
-    if (!downloadUrl) {
-      return res.status(404).json({ success: false, error: 'Download URL not found', api_creator: "MinatoCodes" });
-    }
-
-    res.json({
-      success: true,
-      download_url: downloadUrl,
-      api_creator: "MinatoCodes"
-    });
-  } catch (err) {
-    console.error('Direct download error:', err);
-    res.status(500).json({ success: false, error: 'Failed to fetch download URL', api_creator: "MinatoCodes" });
-  }
-});
-
 module.exports = app;
-      
